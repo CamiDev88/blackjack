@@ -25,7 +25,6 @@ function ingresarJugador(){
 					separar: false,
 					salir: true
 				},
-				posiblesResultados: null,
 				puntuacion: null,
 				resultadoFinal: null
 			}
@@ -86,12 +85,12 @@ function apostar(indexJugador){
 				// Análisis previo
 				jugadores.forEach(function(jugador, index){
 					if(jugador != null){
-						analizarJugada(index);
+						analizarJugada('jugador', index);
 					}
 				});
-
+				
 				// Comienza el juego
-				jugar(0);
+				jugar('jugador', 0);
 			}
 			else{
 				modal.hide();
@@ -110,7 +109,7 @@ function apostar(indexJugador){
 			// Si se acabó el tiempo y hay más jugadores, pasamos al siguiente jugador
 			// sino, comenzamos la jugada
 			if(chequearTiempo()){
-				concluirApuesta();
+				//concluirApuesta();
 			}
 		}, 1000);
 
@@ -242,8 +241,18 @@ function chequearBlackJack(cartasJugador){
 	return blackJack;
 }
 
-function analizarJugada(indexJugador){
-	let jugador = jugadores[indexJugador];
+function analizarJugada(mano, indexJugador){
+	let jugador = null;
+
+	switch(mano){
+		case 'jugador':
+			jugador = jugadores[indexJugador];
+		break;
+
+		case 'clon':
+			jugador = clones[indexJugador];
+		break;
+	}
 
 	if(jugador != null){
 		if(jugador.cartas.length > 0){
@@ -251,18 +260,36 @@ function analizarJugada(indexJugador){
 			let croupierDeveloSegundaCarta = (croupier.cartas.length > 1) ? true : false;
 
 			// Función para ver si se pasó
-			function obtenerResultadoMenorA21(resultado){
-				return resultado < 21;
+			function obtenerResMenorOIgualA21(resultado){
+				return resultado <= 21;
+			}
+
+			// Función para ordenar números ascendentemente
+			function compararNumeros(a, b)
+			{
+			    return a - b;
 			}
 
 			// Chequeamos si hay BlackJack
 			if(chequearBlackJack(jugador.cartas)){
-				jugador.resultadoFinal = 'BlackJack';
+				// Si no se trata de una jugada con separación de cartas, es BlackJack, sino simplemente gana
+				if(clones[indexJugador] != null){
+					jugador.resultadoFinal = 'BlackJack';
+				}
+				else{
+					jugador.resultadoFinal = 'Ganó';
+				}
 
 				// Si el croupier ya develó su segunda carta, chequeamos si obtuvo BlackJack, en cuyo caso hay un empate
 				if(croupierDeveloSegundaCarta){
 					if(chequearBlackJack(croupier.cartas)){
-						jugador.resultadoFinal = 'Empató';
+						// Si no se trata de una jugada con separación de cartas, es BlackJack, sino pierde
+						if(clones[indexJugador] != null){
+							jugador.resultadoFinal = 'Empató';
+						}
+						else{
+							jugador.resultadoFinal = 'Perdió';
+						}
 					}
 				}
 			}
@@ -270,11 +297,11 @@ function analizarJugada(indexJugador){
 				let resultadosJugador = chequearPosiblesResultados(jugador.cartas);
 
 				// Ordenamos los resultados del jugador, de menor a mayor y de mayor a menor	
-				let minToMaxResJugador = resultadosJugador.sort();		
+				let minToMaxResJugador = resultadosJugador.sort(compararNumeros);		
 				let maxToMinResJugador = minToMaxResJugador.reverse();
 
 				// Chequeamos si se pasó
-				let jugadorSePaso = resultadosJugador.find(obtenerResultadoMenorA21);
+				let jugadorSePaso = resultadosJugador.find(obtenerResMenorOIgualA21);
 
 				// Si no hay resultados menores a 21, avisamos que se pasó
 				if(jugadorSePaso == undefined){
@@ -290,9 +317,13 @@ function analizarJugada(indexJugador){
 					}
 				}
 				else{
+					let resultadosCroupier = chequearPosiblesResultados(croupier.cartas);
+
 					// Chequeamos si sacó 21
 					if(resultadosJugador.indexOf(21) != -1){
 						jugador.resultadoFinal = 'Ganó';
+
+						jugador.puntuacion = 21;
 
 						// Si el croupier ya develó su segunda carta, chequeamos si hubo empate
 						if(resultadosCroupier.indexOf(21) != -1){
@@ -302,8 +333,6 @@ function analizarJugada(indexJugador){
 					else{
 						// Si el croupier ya develó su segunda carta, analizamos si el jugador ganó, empató o perdió
 						if(croupierDeveloSegundaCarta){
-							let resultadosCroupier = chequearPosiblesResultados(croupier.cartas);
-
 							// Calculamos la puntuación del jugador
 							for (let i = 0; i < maxToMinResJugador.length; i++) {
 								if(maxToMinResJugador[i] < 21){
@@ -314,7 +343,7 @@ function analizarJugada(indexJugador){
 							}
 
 							// Chequeamos si el croupier se pasó
-							let croupierSePaso = resultadosCroupier.find(obtenerResultadoMenorA21);
+							let croupierSePaso = resultadosCroupier.find(obtenerResMenorOIgualA21);
 
 							if(croupierSePaso == undefined){
 								jugador.resultadoFinal = 'Ganó';
@@ -322,7 +351,7 @@ function analizarJugada(indexJugador){
 							else{
 								// Chequeamos si hubo empate
 								// Calculamos la puntuacion del croupier
-								let maxToMinResCroupier = resultadosCroupier.sort().reverse();
+								let maxToMinResCroupier = resultadosCroupier.sort(compararNumeros).reverse();
 								let maxResCroupier = 0;								
 
 								for (let i = 0; i < maxToMinResCroupier.length; i++) {
@@ -364,12 +393,11 @@ function otorgarPremios(){
 				break;
 
 				case 'Empató':
-
 					jugador.dinero = jugador.dinero + jugador.apuesta;
-
 				break;
 
 				case 'Perdió':
+
 				default:
 
 				break;
@@ -378,15 +406,49 @@ function otorgarPremios(){
 			jugador.apuesta = 0;
 		}
 	});
+
+	clones.forEach(function(clon, index){
+		if(clon != null){
+			let jugador = jugadores[index];
+
+			switch(clon.resultadoFinal){
+				case 'Ganó':
+					jugador.dinero = jugador.dinero + (clon.apuesta * 2);
+				break;
+
+				case 'Empató':
+					jugador.dinero = jugador.dinero + jugador.apuesta;
+				break;
+
+				case 'Perdió':
+
+				default:
+
+				break;
+			}
+
+			clon.apuesta = 0;
+		}
+	});
 }
 
-function jugar(indexJugador){
-	let jugador = jugadores[indexJugador];
+function jugar(mano, indexJugador){
+	let jugador = null;
+
+	switch(mano){
+		case 'jugador':
+			jugador = jugadores[indexJugador];
+		break;
+
+		case 'clon':
+			jugador = clones[indexJugador];
+		break;
+	}
 
 	if(jugador !== null){
 		if(jugador.apuesta != 0){
 			if(jugador.resultadoFinal == 'BlackJack' || jugador.puntuacion == 21){
-				concluirJugada(indexJugador);
+				concluirJugada(mano, indexJugador);
 			}
 			else{
 				// Ponemos el timer
@@ -397,42 +459,56 @@ function jugar(indexJugador){
 					// Si se acabó el tiempo y hay más jugadores, pasamos al siguiente jugador
 					// sino, analizamos la jugada
 					if(chequearTiempo()){
-						concluirJugada(indexJugador);
+						concluirJugada(mano, indexJugador);
 					}
 				}, 1000);
 
-				habilitarAcciones(indexJugador);
+				habilitarAcciones(mano, indexJugador);
 
 				actualizarTablero();
 			}
 		}
 		else{
-			concluirJugada(indexJugador);
+			concluirJugada(mano, indexJugador);
 		}
 	}
 	else{
-		concluirJugada(indexJugador);
+		concluirJugada(mano, indexJugador);
 	}
 }
 
-function concluirJugada(indexJugador){
-	let jugador = jugadores[indexJugador];
+function concluirJugada(mano, indexJugador){
+	let jugador = null;
+
+	switch(mano){
+		case 'jugador':
+			jugador = jugadores[indexJugador];
+		break;
+
+		case 'clon':
+			jugador = clones[indexJugador];
+		break;
+	}
 
 	clearInterval(timeCheckInterval);
 	clearInterval(timer);
 
 	reloj.innerHTML = '';
 
-	if(indexJugador < (jugadores.length - 1)){
-		jugar(indexJugador + 1);
-	}
-	else{
+	// Si se trata de la última mano, finalizamos la partida
+	if(mano == 'clon' && indexJugador == (jugadores.length - 1)){
 		// El croupier se reparte otra carta
 		croupier.cartas.push(cartas.shift());
 
 		jugadores.forEach(function(jugador, index){
 			if(jugador != null){
-				analizarJugada(index);
+				analizarJugada('jugador', index);
+			}
+		});
+
+		clones.forEach(function(clon, index){
+			if(clon != null){
+				analizarJugada('clon', index);
 			}
 		});
 
@@ -440,9 +516,19 @@ function concluirJugada(indexJugador){
 
 		habilitarBotones();
 	}
+	else{
+		if(mano == 'jugador'){
+			// Pasamos al clon
+			jugar('clon', indexJugador);
+		}
+		else{
+			// Pasamos al jugador
+			jugar('jugador', indexJugador + 1);
+		}
+	}
 
 	if(jugador !== null){
-		deshabilitarAcciones(indexJugador);
+		deshabilitarAcciones(mano, indexJugador);
 
 		actualizarTablero();
 	}	
@@ -485,8 +571,18 @@ function sumarCartas(cartasJugador){
 	return suma;
 }
 
-function habilitarAcciones(indexJugador){
-	let jugador = jugadores[indexJugador];
+function habilitarAcciones(mano, indexJugador){
+	let jugador = null;
+
+	switch(mano){
+		case 'jugador':
+			jugador = jugadores[indexJugador];
+		break;
+
+		case 'clon':
+			jugador = clones[indexJugador];
+		break;
+	}
 
 	// Acción pedir carta
 	jugador.acciones.pedirCarta = true;
@@ -494,21 +590,53 @@ function habilitarAcciones(indexJugador){
 	// Accion plantarse
 	jugador.acciones.plantarse = true;
 
-	// Acción doblar
-	if((jugador.apuesta * 2) <= jugador.dinero){
-		jugador.acciones.doblar = true;
+	// Si el jugador ya dividió o si se trata de una mano clon, no podrá doblar ni separar
+	if((mano == 'jugador' && clones['indexJugador'] != null) || (mano == 'clon')){
+		jugador.acciones.doblar	= false;
+		jugador.acciones.separar = false;
 	}
+	else{
+		// Acción doblar
+		if((jugador.apuesta * 2) <= jugador.dinero){
+			jugador.acciones.doblar = true;
+		}
 
-	// Acción separar
-	jugador.acciones.separar = true;
+		// Acción separar
+		// Función para chequear si las cartas son equivalentes
+		function chequearEquivalencia(carta1, carta2){
+			for (let i = 0; i < carta1.valores.length; i++) {
+				for (let j = 0; j < carta2.valores.length; j++) {
+					if(carta1.valores[i] == carta2.valores[j]){
+						return true;
+					}
+				}	
+			}
+
+			return false;		
+		}
+
+		if(jugador.cartas.length == 2 && chequearEquivalencia(jugador.cartas[0], jugador.cartas[1])){
+			jugador.acciones.separar = true;
+		}
+	}
 
 	// Señalar jugador en tablero
 	tablero.childNodes[indexJugador].style.backgroundColor = '#061A30';
 	tablero.childNodes[indexJugador].style.color = '#FFF';
 }
 
-function deshabilitarAcciones(indexJugador){
-	let jugador = jugadores[indexJugador];
+function deshabilitarAcciones(mano, indexJugador){
+	let jugador = null;
+
+	switch(mano){
+		case 'jugador':
+			jugador = jugadores[indexJugador];
+		break;
+
+		case 'clon':
+			jugador = clones[indexJugador];
+		break;
+	}
 
 	// Acción pedir carta
 	jugador.acciones.pedirCarta = false;
@@ -527,22 +655,32 @@ function deshabilitarAcciones(indexJugador){
 	tablero.childNodes[indexJugador].style.color = '#061A30';
 }
 
-function aplicarAccion(indexJugador, accion){
-	let jugador = jugadores[indexJugador];
+function aplicarAccion(mano, indexJugador, accion){
+	let jugador = null;
+
+	switch(mano){
+		case 'jugador':
+			jugador = jugadores[indexJugador];
+		break;
+
+		case 'clon':
+			jugador = clones[indexJugador];
+		break;
+	}
 
 	switch(accion){
 		case 'pedirCarta':
 			repartir(1, [jugador]);
 			
-			analizarJugada(indexJugador);
+			analizarJugada(mano, indexJugador);
 
 			if(jugador.puntuacion == 21 || jugador.resultadoFinal == 'Se pasó'){
-				concluirJugada(indexJugador);
+				concluirJugada(mano, indexJugador);
 			}
 		break;
 
 		case 'plantarse':
-			concluirJugada(indexJugador);
+			concluirJugada(mano, indexJugador);
 		break;
 
 		case 'doblar':
@@ -551,13 +689,25 @@ function aplicarAccion(indexJugador, accion){
 				jugador.apuesta = jugador.apuesta * 2;
 
 				jugador.acciones.doblar = false;
+				jugador.acciones.pedirCarta = false;
 
-				aplicarAccion(indexJugador, 'pedirCarta');
+				aplicarAccion(mano, indexJugador, 'pedirCarta');
 			}
 		break;
 
 		case 'separar':
+			generarClon(indexJugador);
 
+			// Limpiamos el reloj
+			clearInterval(timeCheckInterval);
+			clearInterval(timer);
+
+			reloj.innerHTML = '';
+
+			jugador.acciones.separar = false;
+			jugador.acciones.doblar = false;
+
+			jugar(mano, indexJugador);
 		break;
 	}
 
@@ -630,7 +780,7 @@ function actualizarTablero(){
 			tr.querySelector('.apuesta').innerHTML = jugador.apuesta; 
 			tr.querySelector('.dinero').innerHTML = jugador.dinero; 
 
-			tdCartas = tr.querySelector('.cartas');
+			let tdCartas = tr.querySelector('.cartas');
 
 			// Vaciamos las cartas
 			tdCartas.innerHTML = '';
@@ -648,7 +798,7 @@ function actualizarTablero(){
 				tdCartas.innerHTML = '';
 			}
 
-			tdResultado = tr.querySelector('.resultado');
+			let tdResultado = tr.querySelector('.resultado');
 
 			// Vaciamos los resultados
 			tdResultado.innerHTML = '';
@@ -660,7 +810,7 @@ function actualizarTablero(){
 				tdResultado.innerHTML = '-';
 			}
 
-			tdOpciones = tr.querySelector('.opciones');
+			let tdOpciones = tr.querySelector('.opciones');
 
 			// Vaciamos las opciones
 			tdOpciones.innerHTML = '';
@@ -668,7 +818,7 @@ function actualizarTablero(){
 			// Cargamos las acciones correspondientes (botones)
 			// Agregamos los eventos a los botones
 			if(jugador.acciones.salir){
-				btnSalir = document.createElement('button');
+				let btnSalir = document.createElement('button');
 				btnSalir.innerHTML = 'Abandonar juego';
 
 				btnSalir.addEventListener('click', function(){
@@ -678,44 +828,113 @@ function actualizarTablero(){
 				tdOpciones.appendChild(btnSalir);
 			}
 			if(jugador.acciones.pedirCarta){
-				btnPedirCarta = document.createElement('button');
+				let btnPedirCarta = document.createElement('button');
 				btnPedirCarta.innerHTML = 'Carta';
 
 				btnPedirCarta.addEventListener('click', function(){
-					aplicarAccion(index, 'pedirCarta');
+					aplicarAccion('jugador', index, 'pedirCarta');
 				});
 
 				tdOpciones.appendChild(btnPedirCarta);
 			}
 			if(jugador.acciones.plantarse){
-				btnPlantarse = document.createElement('button');
+				let btnPlantarse = document.createElement('button');
 				btnPlantarse.innerHTML = 'Plantarse';
 
 				btnPlantarse.addEventListener('click', function(){
-					aplicarAccion(index, 'plantarse');
+					aplicarAccion('jugador', index, 'plantarse');
 				});
 
 				tdOpciones.appendChild(btnPlantarse);
 			}
 			if(jugador.acciones.doblar){
-				btnDoblar = document.createElement('button');
+				let btnDoblar = document.createElement('button');
 				btnDoblar.innerHTML = 'Doblar';
 
 				btnDoblar.addEventListener('click', function(){
-					aplicarAccion(index, 'doblar');
+					aplicarAccion('jugador', index, 'doblar');
 				});
 
 				tdOpciones.appendChild(btnDoblar);
 			}
 			if(jugador.acciones.separar){
-				btnSeparar = document.createElement('button');
+				let btnSeparar = document.createElement('button');
 				btnSeparar.innerHTML = 'Separar';
 
 				btnSeparar.addEventListener('click', function(){
-					aplicarAccion(index, 'separar');
+					aplicarAccion('jugador', index, 'separar');
 				});
 
 				tdOpciones.appendChild(btnSeparar);
+			}
+
+			// Eliminamos los divs de manos clon
+			document.querySelectorAll('td div').forEach(function(div){
+				div.remove();
+			});
+
+			// Si hay una mano clon...
+			let clon = clones[index];
+
+			if(clon != null){
+				let apuestaClon = document.createElement('div');
+				apuestaClon.innerHTML = clon.apuesta;
+				tr.querySelector('.apuesta').appendChild(apuestaClon);
+
+				let cartasClon = document.createElement('div');
+
+				if(clon.cartas.length != 0){
+					clon.cartas.forEach(function(carta, i){
+						if(i != 0){
+							cartasClon.innerHTML = cartasClon.innerHTML + ' - ';
+						}
+
+						cartasClon.innerHTML = cartasClon.innerHTML + carta.nombre;
+					});
+				}
+				else{
+					cartasClon.innerHTML = '';
+				}
+
+				tdCartas.appendChild(cartasClon);
+
+				// Creamos los botones
+				let botonesClon = document.createElement('div');
+
+				if(clon.acciones.pedirCarta){
+					let btnPedirCarta = document.createElement('button');
+					btnPedirCarta.innerHTML = 'Carta';
+
+					btnPedirCarta.addEventListener('click', function(){
+						aplicarAccion('clon', index, 'pedirCarta');
+					});
+
+					botonesClon.appendChild(btnPedirCarta);
+				}
+				if(clon.acciones.plantarse){
+					let btnPlantarse = document.createElement('button');
+					btnPlantarse.innerHTML = 'Plantarse';
+
+					btnPlantarse.addEventListener('click', function(){
+						aplicarAccion('clon', index, 'plantarse');
+					});
+
+					botonesClon.appendChild(btnPlantarse);
+				}
+
+				tdOpciones.appendChild(botonesClon);
+
+				// Volcamos el resultado, si lo hay
+				let resultadoClon = document.createElement('div');
+				
+				if(clon.resultadoFinal != null && clon.puntuacion != null){
+					resultadoClon.innerHTML = clon.resultadoFinal;
+				} 
+				else{
+					resultadoClon.innerHTML = '-';
+				}
+
+				tdResultado.appendChild(resultadoClon);
 			}
 		}
 		else{
@@ -756,6 +975,8 @@ function reiniciar(){
 			jugador.resultadoFinal = '';
 		}
 	});
+
+	eliminarClones();
 
 	actualizarTablero();
 }
@@ -816,4 +1037,31 @@ function deshabilitarBotones(){
 	});
 
 	document.querySelector('#modal .close').style.display = 'none';
+}
+
+function generarClon(indexJugador){
+	let jugador = jugadores[indexJugador];
+
+	clones[indexJugador] = {
+				apuesta: jugador.apuesta,
+				cartas: [],
+				acciones: {
+					pedirCarta: false,
+					plantarse: false,
+					doblar: false,
+					separar: false,
+					salir: false
+				},
+				puntuacion: null,
+				resultadoFinal: null
+			}
+
+	clones[indexJugador].cartas = [];
+	clones[indexJugador].cartas.push(jugador.cartas.pop());
+
+	jugador.dinero = jugador.dinero - jugador.apuesta;
+}
+
+function eliminarClones(){
+	clones = clones.map((clon) => { return null; });
 }

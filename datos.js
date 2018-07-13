@@ -321,3 +321,6 @@ var croupier = {
 }
 
 var jugadores = [null, null, null];
+
+// Utilizado para la separación de manos
+var clones = [null, null, null];
