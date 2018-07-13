@@ -335,7 +335,7 @@ function analizarJugada(mano, indexJugador){
 			// Chequeamos si hay BlackJack
 			if(chequearBlackJack(jugador.cartas)){
 				// Si no se trata de una jugada con separación de cartas, es BlackJack, sino simplemente gana
-				if(clones[indexJugador] != null){
+				if(clones[indexJugador] == null){
 					jugador.resultadoFinal = 'BlackJack';
 				}
 				else{
@@ -345,8 +345,8 @@ function analizarJugada(mano, indexJugador){
 				// Si el croupier ya develó su segunda carta, chequeamos si obtuvo BlackJack, en cuyo caso hay un empate
 				if(croupierDeveloSegundaCarta){
 					if(chequearBlackJack(croupier.cartas)){
-						// Si no se trata de una jugada con separación de cartas, es BlackJack, sino pierde
-						if(clones[indexJugador] != null){
+						// Si no se trata de una jugada con separación de cartas, es empate, sino pierde
+						if(clones[indexJugador] == null){
 							jugador.resultadoFinal = 'Empató';
 						}
 						else{
@@ -354,6 +354,8 @@ function analizarJugada(mano, indexJugador){
 						}
 					}
 				}
+
+				jugador.puntuacion = 21;
 			}
 			else{
 				let resultadosJugador = chequearPosiblesResultados(jugador.cartas);
@@ -1069,7 +1071,7 @@ function jugarCroupier(callback){
 		return resultadosCroupier.find(obtenerResultadoMenorA17);
 	}
 
-	while(chequearResultadoMenorA17()){
+	while(chequearResultadoMenorA17() && !chequearBlackJack(croupier.cartas)){
 		croupier.cartas.push(cartas.shift());
 	}
 
