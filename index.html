@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+	<title>Blackjack Europeo</title>
+	<style>
+		*{
+			box-sizing: border-box;
+		}
+		body{
+			font-family: 'Verdana', sans-serif;
+		}
+		.container{
+			width: 100%;
+			max-width: 1280px;
+			margin: 0 auto;
+		}
+		h1{
+			margin: 0 auto 50px;
+			text-align: center;
+		}
+		table{
+			width: 100%;
+			border-collapse: collapse;
+			margin: 40px 0;
+		}
+		th{
+			background: #17a2b8;
+			font-weight: 400;
+		}
+		th,td{
+			height: 90px;
+			text-align: center;
+		}
+		tbody tr{
+		    background-color: rgba(0,0,0,.05);
+		    border-bottom: 2px solid rgba(0,0,0,.075);
+		    color: ;
+		}
+		button{
+			background: #FD6A08;
+			border: none;
+			height: 35px;
+			color: #fff;
+			font-size: 15px;
+			border-radius: 3px;
+			cursor: pointer;
+		}
+		button[disabled]{
+			opacity: 0.5;
+			cursor: not-allowed;
+			pointer-events: none;
+		}
+		#reloj {
+		    font-size: 30px;
+		    font-weight: 600;
+		    float: right;
+		    color: #292B5A;
+		}
+		.hide{
+			display: none;
+		}
+
+		/* MODAL STYLES */
+		.modal {
+		    display: none; /* Hidden by default */
+		    position: fixed; /* Stay in place */
+		    z-index: 1; /* Sit on top */
+		    left: 0;
+		    top: 0;
+		    width: 100%; /* Full width */
+		    height: 100%; /* Full height */
+		    overflow: auto; /* Enable scroll if needed */
+		    background-color: rgb(0,0,0); /* Fallback color */
+		    background-color: rgba(0,0,0,0.15); /* Black w/ opacity */
+		}
+
+		/* Modal Content/Box */
+		.modal-content {
+		    background-color: #fefefe;
+		    margin: 15% auto; /* 15% from the top and centered */
+		    padding: 20px;
+		    box-shadow: 0 2px 2px 0 rgba(0,0,0,0.14), 0 3px 1px -2px rgba(0,0,0,0.12), 0 1px 5px 0 rgba(0,0,0,0.2);
+		    width: 90%;
+    		max-width: 600px;
+    		overflow: hidden;
+		}
+
+		.modal p{
+			font-size: 22px;
+		    color: #111;
+		    margin: 20px 0 0;
+		}
+
+		.modal input{
+			height: 40px;
+		    background: #eee;
+		    border: none;
+		    width: 300px;
+		    margin: 25px 0 15px;
+		    font-size: 17px;
+    		padding: 10px;
+		}
+
+		/* The Close Button */
+		.close {
+		    color: #aaa;
+		    float: right;
+		    font-size: 28px;
+		    font-weight: bold;
+		}
+
+		.close:hover,
+		.close:focus {
+		    color: black;
+		    text-decoration: none;
+		    cursor: pointer;
+		}
+
+		.modal-footer button{
+			float: right;
+			min-width: 60px;
+		}
+		td.opciones button{
+			margin: 0 5px;
+		}
+		#croupier{
+			max-width: 800px;
+		}
+		#croupier th{
+			background: #CA2D0E;
+			color: #fff;
+		}
+	</style>
+</head>
+<body>
+	<div class="container">
+		<h1>BlackJack Europeo</h1>
+		<!-- controles -->
+		<div id="controls">
+			<button id="nuevoJugador">Nuevo jugador</button>
+			<button id="nuevaPartida">Comenzar partida</button>
+			<span id="reloj"></span>
+		</div>
+		<!-- tablero -->
+		<table id="tablero">
+			<thead>
+				<tr>
+					<th width="15%">Jugadores</th>
+					<th width="10%">Apuesta</th>
+					<th width="10%">Dinero</th>
+					<th width="15%">Cartas</th>
+					<th width="35%">Opciones</th>
+					<th width="15%">Resultado</th>
+				</tr>
+			</thead>
+			<tbody></tbody>
+		</table>
+		<table id="croupier">
+			<tr>
+				<th width="25%">Croupier</th>
+				<td width="50%"></td>
+			</tr>
+		</table>
+	</div>
+	<div id="modal" class="modal">
+	  <!-- Modal content -->
+	  <div class="modal-content">
+	    <span class="close">&times;</span>
+	    <div class="modal-body">
+	    	
+	    </div>
+	    <div class="modal-footer">
+	  		<button class="confirm">Ok</button>
+	  	</div>
+	  </div>
+	</div>
+	<script src="modal.js"></script>
+	<script src="datos.js"></script>
+	<script src="functions.js"></script>
+	<script src="index.js"></script>
+</body>
+</html>
