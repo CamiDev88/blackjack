@@ -16,6 +16,7 @@ function ingresarJugador(){
 			jugadores[posicion] = {
 				nombre: nuevoJugador,
 				apuesta: 0,
+				apuestaSeguro: 0,
 				dinero: 900,
 				cartas: [],
 				acciones: {
@@ -88,9 +89,17 @@ function apostar(indexJugador){
 						analizarJugada('jugador', index);
 					}
 				});
-				
-				// Comienza el juego
-				jugar('jugador', 0);
+
+				actualizarTablero();
+
+				if(croupier.cartas[0].nombre == 'As'){
+					// Habilitamos las apuestas de seguro
+					apostarDeSeguro(0);
+				}
+				else{
+					// Comienza el juego
+					jugar('jugador', 0);
+				}
 			}
 			else{
 				modal.hide();
@@ -142,7 +151,78 @@ function apostar(indexJugador){
 			}
 		}
 
-		modal.prompt(jugador.nombre + ' realice su apuesta:', callback);
+		modal.prompt('<strong>'+jugador.nombre+'</strong>' + ' realice su apuesta:', callback);
+	}
+	else{
+		concluirApuesta();
+	}
+}
+
+function apostarDeSeguro(indexJugador){
+	deshabilitarBotones();
+
+	let jugador = jugadores[indexJugador];
+
+	function concluirApuesta(){
+		clearInterval(timeCheckInterval);
+		clearInterval(timer);
+
+		reloj.innerHTML = '';
+
+		if(indexJugador < (jugadores.length - 1)){
+			apostarDeSeguro(indexJugador + 1);
+		}
+		else{
+			// Comienza el juego
+			jugar('jugador', 0);
+		}
+	}
+
+	if(jugador !== null && jugador.apuesta != 0){
+		// Ponemos el timer
+		ponerTimer();
+
+		// Activamos el chequeo de tiempo
+		timeCheckInterval = setInterval(function(){
+			// Si se acabó el tiempo y hay más jugadores, pasamos al siguiente jugador
+			// sino, comenzamos la jugada
+			if(chequearTiempo()){
+				concluirApuesta();
+			}
+		}, 1000);
+
+		// Función callback para cuando realice su apuesta
+		const callback = function(){
+			let apuesta = document.querySelector('#modal input').value;
+
+			let patron = /^[0-9]+$/;
+
+			if(apuesta == '' || !patron.test(apuesta)){
+				concluirApuesta();
+			}
+			else{
+				apuesta = parseInt(apuesta);
+
+				if(apuesta < 0){
+					concluirApuesta();
+				}
+				else{
+					// Si la apuesta de seguro supera la mitad apostada inicialmente o si supera el dinero disponible, 
+					// se concluye la misma
+					if((apuesta > (jugador.apuesta / 2)) || (apuesta > jugador.dinero)){
+						concluirApuesta();
+					}
+					else{
+						jugador.apuestaSeguro = apuesta;
+						jugador.dinero = jugador.dinero - apuesta;
+
+						concluirApuesta();
+					}
+				}
+			}
+		}
+
+		modal.prompt('<strong>'+jugador.nombre+'</strong>' + ', si lo desea realice su apuesta de seguro:', callback);
 	}
 	else{
 		concluirApuesta();
@@ -218,23 +298,11 @@ function chequearBlackJack(cartasJugador){
 	let blackJack = false;
 
 	if(cartasJugador.length == 2){
-		// Contemplamos todas las posibilidades
-		for(let i = 0; i < cartasJugador.length; i++){
-			for(let j = 0; j < cartasJugador.length; j++){
-				if(i != j){
-					if(cartasJugador[i].nombre == 'As' && cartasJugador[j].valores[0] == 10){
-						blackJack = true;
-
-						break;
-					}
-
-					if(cartasJugador[j].nombre == 'As' && cartasJugador[i].valores[0] == 10){
-						blackJack = true;
-
-						break;
-					}				
-				}
-			}
+		if(
+			((cartasJugador[0].nombre == 'As') && (cartasJugador[1].valores.indexOf(10) != -1)) || 
+			((cartasJugador[0].valores.indexOf(10) != -1 ) && (cartasJugador[1].nombre == 'As'))
+		){
+			blackJack = true;
 		}
 	}
 
@@ -403,7 +471,12 @@ function otorgarPremios(){
 				break;
 			}
 
+			if(jugador.apuestaSeguro > 0 && chequearBlackJack(croupier.cartas)){
+				jugador.dinero = jugador.dinero + (jugador.apuestaSeguro * 2);
+			}
+
 			jugador.apuesta = 0;
+			jugador.apuestaSeguro = 0;
 		}
 	});
 
@@ -540,7 +613,7 @@ function concluirJugada(mano, indexJugador){
 
 function ponerTimer(){
 	let finalTime = new Date();
-	finalTime.setSeconds(finalTime.getSeconds() + 17);
+	finalTime.setSeconds(finalTime.getSeconds() + 22);
 	finalTime = finalTime.getTime();
 
 	timer = setInterval(function(){
@@ -595,7 +668,7 @@ function habilitarAcciones(mano, indexJugador){
 	jugador.acciones.plantarse = true;
 
 	// Si el jugador ya dividió o si se trata de una mano clon, no podrá doblar ni separar
-	if((mano == 'jugador' && clones['indexJugador'] != null) || (mano == 'clon')){
+	if((mano == 'jugador' && clones[indexJugador] != null) || (mano == 'clon')){
 		jugador.acciones.doblar	= false;
 		jugador.acciones.separar = false;
 	}
@@ -733,6 +806,7 @@ function inicializarTablero(){
 		let tr = document.createElement('tr');
 		let tdJugador = document.createElement('td');
 		let tdApuesta = document.createElement('td');
+		let tdApuestaSeguro = document.createElement('td');
 		let tdDinero = document.createElement('td');
 		let tdCartas = document.createElement('td');
 		let tdOpciones = document.createElement('td');
@@ -740,6 +814,7 @@ function inicializarTablero(){
 
 		tdJugador.classList.add('jugador');
 		tdApuesta.classList.add('apuesta');
+		tdApuestaSeguro.classList.add('apuestaSeguro');
 		tdDinero.classList.add('dinero');
 		tdCartas.classList.add('cartas');
 		tdOpciones.classList.add('opciones');
@@ -747,6 +822,7 @@ function inicializarTablero(){
 
 		tr.appendChild(tdJugador);
 		tr.appendChild(tdApuesta);
+		tr.appendChild(tdApuestaSeguro);
 		tr.appendChild(tdDinero);
 		tr.appendChild(tdCartas);
 		tr.appendChild(tdOpciones);
@@ -758,6 +834,9 @@ function inicializarTablero(){
 			elem.innerHTML = '-';
 		});
 		document.querySelectorAll('.apuesta').forEach(function(elem){
+			elem.innerHTML = '-';
+		});
+		document.querySelectorAll('.apuestaSeguro').forEach(function(elem){
 			elem.innerHTML = '-';
 		});
 		document.querySelectorAll('.dinero').forEach(function(elem){
@@ -785,6 +864,13 @@ function actualizarTablero(){
 			tr.querySelector('.jugador').innerHTML = jugador.nombre; 
 			tr.querySelector('.apuesta').innerHTML = jugador.apuesta; 
 			tr.querySelector('.dinero').innerHTML = jugador.dinero; 
+
+			if(jugador.apuestaSeguro != 0){
+				tr.querySelector('.apuestaSeguro').innerHTML = jugador.apuestaSeguro;
+			}
+			else{
+				tr.querySelector('.apuestaSeguro').innerHTML = '-';
+			}
 
 			let tdCartas = tr.querySelector('.cartas');
 
@@ -979,15 +1065,17 @@ function actualizarTablero(){
 }
 
 function jugarCroupier(callback){
-	let resultadosCroupier = chequearPosiblesResultados(croupier.cartas);
+	function chequearResultadoMenorA17(){
+		let resultadosCroupier = chequearPosiblesResultados(croupier.cartas);
 
-	function obtenerResultadoMenorA17(resultado){
-		return resultado < 17;
+		function obtenerResultadoMenorA17(resultado){
+			return resultado < 17;
+		}
+
+		return resultadosCroupier.find(obtenerResultadoMenorA17);
 	}
 
-	let hayResultadosMenoresA17 = resultadosCroupier.find(obtenerResultadoMenorA17);
-
-	if(hayResultadosMenoresA17){
+	while(chequearResultadoMenorA17()){
 		croupier.cartas.push(cartas.shift());
 	}
 
