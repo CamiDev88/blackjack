@@ -109,7 +109,7 @@ function apostar(indexJugador){
 			// Si se acabó el tiempo y hay más jugadores, pasamos al siguiente jugador
 			// sino, comenzamos la jugada
 			if(chequearTiempo()){
-				//concluirApuesta();
+				concluirApuesta();
 			}
 		}, 1000);
 
@@ -500,21 +500,25 @@ function concluirJugada(mano, indexJugador){
 		// El croupier se reparte otra carta
 		croupier.cartas.push(cartas.shift());
 
-		jugadores.forEach(function(jugador, index){
-			if(jugador != null){
-				analizarJugada('jugador', index);
-			}
-		});
+		let callback = function(){
+			jugadores.forEach(function(jugador, index){
+				if(jugador != null){
+					analizarJugada('jugador', index);
+				}
+			});
 
-		clones.forEach(function(clon, index){
-			if(clon != null){
-				analizarJugada('clon', index);
-			}
-		});
+			clones.forEach(function(clon, index){
+				if(clon != null){
+					analizarJugada('clon', index);
+				}
+			});
 
-		otorgarPremios();
+			otorgarPremios();
 
-		habilitarBotones();
+			habilitarBotones();
+		}
+
+		jugarCroupier(callback);
 	}
 	else{
 		if(mano == 'jugador'){
@@ -772,8 +776,10 @@ function inicializarTablero(){
 }
 
 function actualizarTablero(){
+	/******* Jugadores *******/
+
 	jugadores.forEach(function(jugador, index){
-		const tr = tablero.childNodes[index];
+		let tr = tablero.childNodes[index];
 
 		if(jugador != null){
 			tr.querySelector('.jugador').innerHTML = jugador.nombre; 
@@ -872,70 +878,6 @@ function actualizarTablero(){
 			document.querySelectorAll('td div').forEach(function(div){
 				div.remove();
 			});
-
-			// Si hay una mano clon...
-			let clon = clones[index];
-
-			if(clon != null){
-				let apuestaClon = document.createElement('div');
-				apuestaClon.innerHTML = clon.apuesta;
-				tr.querySelector('.apuesta').appendChild(apuestaClon);
-
-				let cartasClon = document.createElement('div');
-
-				if(clon.cartas.length != 0){
-					clon.cartas.forEach(function(carta, i){
-						if(i != 0){
-							cartasClon.innerHTML = cartasClon.innerHTML + ' - ';
-						}
-
-						cartasClon.innerHTML = cartasClon.innerHTML + carta.nombre;
-					});
-				}
-				else{
-					cartasClon.innerHTML = '';
-				}
-
-				tdCartas.appendChild(cartasClon);
-
-				// Creamos los botones
-				let botonesClon = document.createElement('div');
-
-				if(clon.acciones.pedirCarta){
-					let btnPedirCarta = document.createElement('button');
-					btnPedirCarta.innerHTML = 'Carta';
-
-					btnPedirCarta.addEventListener('click', function(){
-						aplicarAccion('clon', index, 'pedirCarta');
-					});
-
-					botonesClon.appendChild(btnPedirCarta);
-				}
-				if(clon.acciones.plantarse){
-					let btnPlantarse = document.createElement('button');
-					btnPlantarse.innerHTML = 'Plantarse';
-
-					btnPlantarse.addEventListener('click', function(){
-						aplicarAccion('clon', index, 'plantarse');
-					});
-
-					botonesClon.appendChild(btnPlantarse);
-				}
-
-				tdOpciones.appendChild(botonesClon);
-
-				// Volcamos el resultado, si lo hay
-				let resultadoClon = document.createElement('div');
-				
-				if(clon.resultadoFinal != null && clon.puntuacion != null){
-					resultadoClon.innerHTML = clon.resultadoFinal;
-				} 
-				else{
-					resultadoClon.innerHTML = '-';
-				}
-
-				tdResultado.appendChild(resultadoClon);
-			}
 		}
 		else{
 			tr.querySelector('.jugador').innerHTML = '-'; 
@@ -946,6 +888,76 @@ function actualizarTablero(){
 			tr.querySelector('.resultado').innerHTML = '-';
 		}
 	});
+
+	/******* Manos clones ******/
+
+	// Si hay una mano clon...
+	clones.forEach(function(clon, index){
+		let tr = tablero.childNodes[index];
+
+		if(clon != null){
+			let apuestaClon = document.createElement('div');
+			apuestaClon.innerHTML = clon.apuesta;
+			tr.querySelector('.apuesta').appendChild(apuestaClon);
+
+			let cartasClon = document.createElement('div');
+
+			if(clon.cartas.length != 0){
+				clon.cartas.forEach(function(carta, i){
+					if(i != 0){
+						cartasClon.innerHTML = cartasClon.innerHTML + ' - ';
+					}
+
+					cartasClon.innerHTML = cartasClon.innerHTML + carta.nombre;
+				});
+			}
+			else{
+				cartasClon.innerHTML = '';
+			}
+
+			tr.querySelector('.cartas').appendChild(cartasClon);
+
+			// Creamos los botones
+			let botonesClon = document.createElement('div');
+
+			if(clon.acciones.pedirCarta){
+				let btnPedirCarta = document.createElement('button');
+				btnPedirCarta.innerHTML = 'Carta';
+
+				btnPedirCarta.addEventListener('click', function(){
+					aplicarAccion('clon', index, 'pedirCarta');
+				});
+
+				botonesClon.appendChild(btnPedirCarta);
+			}
+			if(clon.acciones.plantarse){
+				let btnPlantarse = document.createElement('button');
+				btnPlantarse.innerHTML = 'Plantarse';
+
+				btnPlantarse.addEventListener('click', function(){
+					aplicarAccion('clon', index, 'plantarse');
+				});
+
+				botonesClon.appendChild(btnPlantarse);
+			}
+
+			tr.querySelector('.opciones').appendChild(botonesClon);
+
+			// Volcamos el resultado, si lo hay
+			let resultadoClon = document.createElement('div');
+			
+			if(clon.resultadoFinal != null && clon.puntuacion != null){
+				resultadoClon.innerHTML = clon.resultadoFinal;
+			} 
+			else{
+				resultadoClon.innerHTML = '-';
+			}
+
+			tr.querySelector('.resultado').appendChild(resultadoClon);
+		}
+	});
+
+	/******* Croupier *******/
 
 	let tdCroupier = tableroCroupier.querySelector('td');
 
@@ -964,6 +976,22 @@ function actualizarTablero(){
 	else{
 		tdCroupier.innerHTML = '';
 	}
+}
+
+function jugarCroupier(callback){
+	let resultadosCroupier = chequearPosiblesResultados(croupier.cartas);
+
+	function obtenerResultadoMenorA17(resultado){
+		return resultado < 17;
+	}
+
+	let hayResultadosMenoresA17 = resultadosCroupier.find(obtenerResultadoMenorA17);
+
+	if(hayResultadosMenoresA17){
+		croupier.cartas.push(cartas.shift());
+	}
+
+	callback();
 }
 
 function reiniciar(){
