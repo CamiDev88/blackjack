@@ -332,12 +332,6 @@ function analizarJugada(mano, indexJugador){
 				return resultado <= 21;
 			}
 
-			// Función para ordenar números ascendentemente
-			function compararNumeros(a, b)
-			{
-			    return a - b;
-			}
-
 			// Chequeamos si hay BlackJack
 			if(chequearBlackJack(jugador.cartas)){
 				// Si no se trata de una jugada con separación de cartas, es BlackJack, sino simplemente gana
@@ -365,7 +359,7 @@ function analizarJugada(mano, indexJugador){
 				let resultadosJugador = chequearPosiblesResultados(jugador.cartas);
 
 				// Ordenamos los resultados del jugador, de menor a mayor y de mayor a menor	
-				let minToMaxResJugador = resultadosJugador.sort(compararNumeros);		
+				let minToMaxResJugador = resultadosJugador.sort((a, b) => a - b);		
 				let maxToMinResJugador = minToMaxResJugador.reverse();
 
 				// Chequeamos si se pasó
@@ -419,11 +413,11 @@ function analizarJugada(mano, indexJugador){
 							else{
 								// Chequeamos si hubo empate
 								// Calculamos la puntuacion del croupier
-								let maxToMinResCroupier = resultadosCroupier.sort(compararNumeros).reverse();
+								let maxToMinResCroupier = resultadosCroupier.sort((a, b) => a - b).reverse();
 								let maxResCroupier = 0;								
 
 								for (let i = 0; i < maxToMinResCroupier.length; i++) {
-									if(maxToMinResCroupier[i] < 21){
+									if(maxToMinResCroupier[i] <= 21){
 										maxResCroupier = maxToMinResCroupier[i];
 
 										break;
